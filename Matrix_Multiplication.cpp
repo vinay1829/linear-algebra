@@ -11,9 +11,9 @@ class Matrix
     vector<int> secondMatrix;
     vector<int> ResultantMatrix;
 
-    // OpenCL kernel code for matrix addition
+    // OpenCL kernel code for matrix multiplication
     const char *kernelSource = R"(
-    __kernel void matrix_subtraction(
+    __kernel void matrix_multiply(
         __global int* A,
         __global int* B,
         __global int* C,
@@ -22,7 +22,12 @@ class Matrix
         int row = get_global_id(0);
         int col = get_global_id(1);
 
-        C[row * N + col] = A[row*N+col]-B[row*N+col];
+        int sum = 0;
+        for (int i = 0; i < N; i++) {
+            sum += A[row * N + i] * B[i * N + col];
+        }
+
+        C[row * N + col] = sum;
     }
     )";
 
@@ -56,7 +61,7 @@ public:
         }
     }
 
-    void matrixSubtraction(int n)
+    void matrixMultiplication(int n)
     {
         cl::Context context(CL_DEVICE_TYPE_GPU);
 
@@ -72,7 +77,7 @@ public:
         program.build(devices);
 
         // Create OpenCL kernel
-        cl::Kernel kernel(program, "matrix_subtraction");
+        cl::Kernel kernel(program, "matrix_multiply");
 
         // Create OpenCL buffers for matrices A, B, and C
         cl::Buffer bufferA(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, n * n * sizeof(int), firstMatrix.data());
@@ -126,7 +131,7 @@ int main()
     Matrix mat(n);
     mat.getValueFirstMatrix(n);
     mat.getValueSecondMatrix(n);
-    mat.matrixSubtraction(n);
+    mat.matrixMultiplication(n);
     mat.printResult(n);
     return 0;
 }
